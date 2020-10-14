@@ -3,6 +3,8 @@
 import numpy as np
 import cv2
 import time
+import pyaudio
+import wave
 
 cap = cv2.VideoCapture(0)  # 640,480
 w = 640
@@ -24,6 +26,25 @@ last_alarmed = time_start
 last_state_changed = time_start
 last_change = time_start
 last_static = time_start
+
+alarm_file = wave.open('alarm.wav', 'rb')
+
+p = pyaudio.PyAudio()
+
+
+# define callback
+def callback(in_data, frame_count, time_info, status):
+    data = alarm_file.readframes(frame_count)
+    return (data, pyaudio.paContinue)
+
+
+# open stream using callback
+stream = p.open(format=p.get_format_from_width(alarm_file.getsampwidth()),
+                channels=alarm_file.getnchannels(),
+                rate=alarm_file.getframerate(),
+                output=True, stream_callback=callback
+                )
+stream.stop_stream()
 
 while (cap.isOpened()):
     eyes_opened = False
@@ -72,7 +93,7 @@ while (cap.isOpened()):
 
             if len(contours) >= 2:
 
-                #print("pupil at", time.time() - time_start)
+                # print("pupil at", time.time() - time_start)
                 # find biggest blob
                 maxArea = 0
                 MAindex = 0  # to get the unwanted frame
@@ -137,11 +158,21 @@ while (cap.isOpened()):
             if not cur_opened and not alarming and time.time() - last_state_changed >= eye_timer:
                 alarming = True
                 print("alarm at", time.time() - time_start)
+                alarm_file = wave.open('alarm.wav', 'rb')
+                stream = p.open(format=p.get_format_from_width(alarm_file.getsampwidth()),
+                                channels=alarm_file.getnchannels(),
+                                rate=alarm_file.getframerate(),
+                                output=True, stream_callback=callback
+                                )
+                stream.start_stream()
 
         if alarming:
             if cur_opened:
                 print("alarming stopped at", time.time() - time_start)
                 alarming = False
+                stream.stop_stream()
+                stream.close()
+                alarm_file.close()
 
         # show picture
         cv2.imshow('frame', pupilO)
