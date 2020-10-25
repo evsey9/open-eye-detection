@@ -12,8 +12,8 @@ h = 480
 
 time_start = time.time()
 
-eye_timer = 5  # in seconds
-eye_delta_timer = 1  # in seconds
+eye_timer = 3  # in seconds
+eye_delta_timer = 2  # in seconds
 
 eyes_opened = True
 was_opened = True
@@ -48,7 +48,7 @@ stream.stop_stream()
 
 while (cap.isOpened()):
     eyes_opened = False
-    ret, frame = cap.read()
+    ret, img = cap.read()
     if ret == True:
 
         # downsample
@@ -56,7 +56,7 @@ while (cap.isOpened()):
         # frameDBW = cv2.cvtColor(frameD,cv2.COLOR_RGB2GRAY)
 
         # detect face
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        frame = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         faces = cv2.CascadeClassifier('haarcascade_eye.xml')
         detected = faces.detectMultiScale(frame, 1.3, 5)
 
@@ -71,9 +71,9 @@ while (cap.isOpened()):
 
         # draw square
         for (x, y, w, h) in detected:
-            cv2.rectangle(frame, (x, y), ((x + w), (y + h)), (0, 0, 255), 1)
-            cv2.line(frame, (x, y), ((x + w, y + h)), (0, 0, 255), 1)
-            cv2.line(frame, (x + w, y), ((x, y + h)), (0, 0, 255), 1)
+            cv2.rectangle(img, (x, y), ((x + w), (y + h)), (0, 0, 255), 1)
+            cv2.line(img, (x, y), ((x + w, y + h)), (0, 0, 255), 1)
+            cv2.line(img, (x + w, y), ((x, y + h)), (0, 0, 255), 1)
             pupilFrame = cv2.equalizeHist(frame[int(y + (h * .25)):(y + h), x:(x + w)])
             pupilO = pupilFrame
             ret, pupilFrame = cv2.threshold(pupilFrame, 75, 255, cv2.THRESH_BINARY)  # 50 ..nothin 70 is better
@@ -152,7 +152,7 @@ while (cap.isOpened()):
 
         if cur_opened != last_cur_opened:
             last_cur_opened = cur_opened
-            print("at", time.time() - time_start, "cur opened =", cur_opened)
+            #print("at", time.time() - time_start, "cur opened =", cur_opened)
             last_state_changed = time.time()
         else:
             if not cur_opened and not alarming and time.time() - last_state_changed >= eye_timer:
@@ -167,6 +167,7 @@ while (cap.isOpened()):
                 stream.start_stream()
 
         if alarming:
+            cv2.putText(img, "Alarm!", (0, 50), 0, 2, (0, 0, 255), 2)
             if cur_opened:
                 print("alarming stopped at", time.time() - time_start)
                 alarming = False
@@ -175,8 +176,9 @@ while (cap.isOpened()):
                 alarm_file.close()
 
         # show picture
-        cv2.imshow('frame', pupilO)
-        cv2.imshow('frame2', pupilFrame)
+        cv2.imshow('image', img)
+        #cv2.imshow('frame', pupilO)
+        #cv2.imshow('frame2', pupilFrame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
